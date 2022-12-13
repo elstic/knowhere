@@ -1,14 +1,13 @@
 #include "annoylib.h"
 #include "index/annoy/annoy_config.h"
 #include "kissrandom.h"
-#include "knowhere/comp/thread_pool.h"
-#include "knowhere/factory.h"
+#include "knowhere/knowhere.h"
 namespace knowhere {
 
 using ThreadedBuildPolicy = AnnoyIndexSingleThreadedBuildPolicy;
 class AnnoyIndexNode : public IndexNode {
  public:
-    AnnoyIndexNode(const Object& object) : index_(nullptr), pool_(ThreadPool::GetGlobalThreadPool()) {
+    AnnoyIndexNode(const Object& object) : index_(nullptr) {
     }
 
     virtual Status
@@ -81,32 +80,25 @@ class AnnoyIndexNode : public IndexNode {
         auto p_id = new (std::nothrow) int64_t[annoy_cfg.k * rows];
         auto p_dist = new (std::nothrow) float[annoy_cfg.k * rows];
 
-        std::vector<std::future<void>> futures;
-        futures.reserve(rows);
+#pragma omp parallel for
         for (unsigned int i = 0; i < rows; ++i) {
-            futures.push_back(pool_->push([&, index = i]() {
-                std::vector<int64_t> result;
-                result.reserve(annoy_cfg.k);
-                std::vector<float> distances;
-                distances.reserve(annoy_cfg.k);
-                index_->get_nns_by_vector(static_cast<const float*>(ts) + index * dim, annoy_cfg.k, annoy_cfg.search_k,
-                                          &result, &distances, bitset);
+            std::vector<int64_t> result;
+            result.reserve(annoy_cfg.k);
+            std::vector<float> distances;
+            distances.reserve(annoy_cfg.k);
+            index_->get_nns_by_vector(static_cast<const float*>(ts) + i * dim, annoy_cfg.k, annoy_cfg.search_k, &result,
+                                      &distances, bitset);
 
-                size_t result_num = result.size();
-                auto local_p_id = p_id + annoy_cfg.k * index;
-                auto local_p_dist = p_dist + annoy_cfg.k * index;
-                memcpy(local_p_id, result.data(), result_num * sizeof(int64_t));
-                memcpy(local_p_dist, distances.data(), result_num * sizeof(float));
+            size_t result_num = result.size();
+            auto local_p_id = p_id + annoy_cfg.k * i;
+            auto local_p_dist = p_dist + annoy_cfg.k * i;
+            memcpy(local_p_id, result.data(), result_num * sizeof(int64_t));
+            memcpy(local_p_dist, distances.data(), result_num * sizeof(float));
 
-                for (; result_num < (size_t)annoy_cfg.k; result_num++) {
-                    local_p_id[result_num] = -1;
-                    local_p_dist[result_num] = 1.0 / 0.0;
-                }
-            }));
-        }
-
-        for (auto& future : futures) {
-            future.get();
+            for (; result_num < (size_t)annoy_cfg.k; result_num++) {
+                local_p_id[result_num] = -1;
+                local_p_dist[result_num] = 1.0 / 0.0;
+            }
         }
 
         return GenResultDataSet(rows, annoy_cfg.k, p_id, p_dist);
@@ -243,7 +235,6 @@ class AnnoyIndexNode : public IndexNode {
  private:
     AnnoyIndexInterface<int64_t, float>* index_;
     std::string metric_type_;
-    std::shared_ptr<ThreadPool> pool_;
 };
 
 KNOWHERE_REGISTER_GLOBAL(ANNOY, [](const Object& object) { return Index<AnnoyIndexNode>::Create(object); });

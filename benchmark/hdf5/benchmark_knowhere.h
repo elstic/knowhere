@@ -18,7 +18,7 @@
 #include "benchmark_hdf5.h"
 #include "knowhere/binaryset.h"
 #include "knowhere/config.h"
-#include "knowhere/factory.h"
+#include "knowhere/knowhere.h"
 
 class Benchmark_knowhere : public Benchmark_hdf5 {
  public:

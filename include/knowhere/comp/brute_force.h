@@ -2,7 +2,7 @@
 #define BRUTE_FORCE_H
 #include "knowhere/bitsetview.h"
 #include "knowhere/dataset.h"
-#include "knowhere/factory.h"
+#include "knowhere/knowhere.h"
 
 namespace knowhere {
 
