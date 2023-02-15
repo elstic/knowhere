@@ -23,6 +23,8 @@ pipeline {
                      // sh "apt-get install dirmngr -y"
                      // sh "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA"
                      // sh "apt-get install build-essential libopenblas-dev ninja-build git -y"
+                        sh 'git clean -fxd'
+                        sh 'rm -rf build/'
                         sh "git config --global --add safe.directory '*'"
                         sh "git submodule update --recursive --init"
                         sh "mkdir build"
@@ -61,7 +63,7 @@ pipeline {
                     dir('tests'){
                       unarchive mapping: ["${knowhere_wheel}": "${knowhere_wheel}"]
                       sh "ls -lah"
-  //                    sh "nvidia-smi"
+  //                  sh "nvidia-smi"
                       sh "pip3 install ${knowhere_wheel} \
                           && pip3 install -r requirements.txt --timeout 30 --retries 6  && pytest -v -m 'L0 and cpu'"
                     }
