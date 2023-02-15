@@ -64,8 +64,10 @@ pipeline {
                       unarchive mapping: ["${knowhere_wheel}": "${knowhere_wheel}"]
                       sh "ls -lah"
   //                  sh "nvidia-smi"
+  //                  sh 'pip3 install -r requirement_arm.txt --timeout 30 --retries 6'
+                      sh 'pip3 uninstall knowhere -y'
                       sh "pip3 install ${knowhere_wheel} \
-                          && pip3 install -r requirements.txt --timeout 30 --retries 6  && pytest -v -m 'L0 and cpu'"
+                          && pytest -v -m 'L0 and cpu'"
                     }
                 }
             }
