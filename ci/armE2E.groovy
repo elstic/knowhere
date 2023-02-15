@@ -59,7 +59,7 @@ pipeline {
                     }
 //                  checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [],
                     checkout([$class: 'GitSCM', branches: [[name: '*/feature-2.0']], extensions: [],
-                    userRemoteConfigs: [[credentialsId: 'milvus-ci', url: 'https://github.com/elstic/knowhere-test.git']]])
+                    userRemoteConfigs: [[credentialsId: 'milvus-ci', url: 'https://github.com/milvus-io/knowhere-test.git']]])
                     dir('tests'){
                       unarchive mapping: ["${knowhere_wheel}": "${knowhere_wheel}"]
                       sh "ls -lah"
